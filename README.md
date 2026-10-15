@@ -40,7 +40,7 @@ Then open http://localhost:3000. To test with phones on the same Wi-Fi, open
 - **Test gate:** `npm test` (syntax checks plus `node:test` suites). Tests bind random ports on 127.0.0.1 only.
 - **Start:** `node server.js` from the repo root. Reads `PORT` (default 3000) and `HOST` (default `0.0.0.0`).
 - **Optional env:** `DATA_DIR=/path/outside/the/clone` makes the server snapshot live rooms to `DATA_DIR/rooms.json` on SIGTERM and restore them on the next boot, so a redeploy mid-game is a few-second blip instead of a lost game. Without it, rooms live in memory only and a restart closes them. `BUILD_ID` overrides the build identifier reported by `/healthz` (otherwise the git commit is used).
-- **Health:** `GET /healthz` returns `{"ok":true,"version":"1.2.0","build":"<git sha>","playing":<live matches>,"rooms":<n>,"players":<connected>,"uptime":<s>,"draining":<bool>}`.
+- **Health:** `GET /healthz` returns `{"ok":true,"version":"1.3.0","build":"<git sha>","playing":<live matches>,"rooms":<n>,"players":<connected>,"uptime":<s>,"draining":<bool>}`.
 - **Shutdown:** SIGTERM or SIGINT drains cleanly, normally in about a second, worst case 10 seconds.
 - **WebSockets:** Socket.IO on the same port, path `/socket.io/`. The reverse proxy or tunnel must pass WebSocket upgrades through. The client derives `ws`/`wss` from the page URL; nothing is hardcoded.
 - **Caching:** `index.html` is served with `no-store`. CSS and JS are referenced as `/a/<content-hash>/…` and served with `max-age=31536000, immutable`, so every deploy gets fresh URLs. Unhashed paths such as `/js/client.js` are served with `no-cache`.

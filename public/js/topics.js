@@ -47,6 +47,42 @@ const TOPICS = [
       "Bradley Wiggins", "Johnny Wilkinson", "Paula Radcliffe", "Jess Ennis-Hill",
       "Lewis Hamilton", "Maria Sharapova", "Usain Bolt", "Laura Trott"
     ]
+  },
+  {
+    name: "Anime",
+    words: [
+      "Naruto", "One Piece", "Dragon Ball Z", "Attack on Titan",
+      "Demon Slayer", "My Hero Academia", "Death Note", "Pokémon",
+      "Sailor Moon", "Jujutsu Kaisen", "Bleach", "Fullmetal Alchemist",
+      "One Punch Man", "Hunter x Hunter", "Spirited Away", "Cowboy Bebop"
+    ]
+  },
+  {
+    name: "Video Games",
+    words: [
+      "Minecraft", "Fortnite", "Super Mario", "Zelda",
+      "Call of Duty", "Grand Theft Auto", "Tetris", "Pac-Man",
+      "Sonic", "Halo", "Among Us", "Roblox",
+      "Elden Ring", "Street Fighter", "The Sims", "Mortal Kombat"
+    ]
+  },
+  {
+    name: "DC Superheroes",
+    words: [
+      "Batman", "Superman", "Wonder Woman", "The Flash",
+      "Aquaman", "Green Lantern", "Cyborg", "Shazam",
+      "Nightwing", "Batgirl", "Green Arrow", "Supergirl",
+      "Martian Manhunter", "Robin", "Hawkgirl", "Zatanna"
+    ]
+  },
+  {
+    name: "Marvel Superheroes",
+    words: [
+      "Spider-Man", "Iron Man", "Captain America", "Thor",
+      "Hulk", "Black Widow", "Black Panther", "Doctor Strange",
+      "Wolverine", "Deadpool", "Captain Marvel", "Scarlet Witch",
+      "Hawkeye", "Ant-Man", "Star-Lord", "Daredevil"
+    ]
   }
 ];
 if (typeof module !== "undefined" && module.exports) module.exports = TOPICS; else root.TOPICS = TOPICS;
