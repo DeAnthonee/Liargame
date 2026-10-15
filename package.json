@@ -1,15 +1,22 @@
 {
   "name": "chameleon-online",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "The Chameleon party game: every player joins a lobby from their own phone.",
   "main": "server.js",
+  "private": true,
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --check server.js && node --check public/js/client.js && node --check public/js/topics.js && node --test \"test/*.test.js\""
   },
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "express": "^4.21.2",
     "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.1"
   },
   "license": "MIT"
 }

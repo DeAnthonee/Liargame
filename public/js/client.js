@@ -61,11 +61,22 @@
         render();
       });
     } else if (local.code && state.room) {
-      socket.emit("rejoin", { code: local.code, key: local.key }, () => render());
+      socket.emit("rejoin", { code: local.code, key: local.key }, res => {
+        if (!res || !res.ok) {
+          state.room = null; state.me = null;
+          delete local.code; saveLocal();
+          toast((res && res.error) || "That room has closed.");
+          state.view = "home";
+        }
+        render();
+      });
     }
     render();
   });
   socket.on("disconnect", () => { state.connected = false; render(); });
+  socket.on("serverRestarting", data => {
+    toast(data && data.resume ? "Server restarting, back in a moment…" : "Server restarting. Your room will close.");
+  });
   socket.on("state", data => {
     state.room = data.room;
     state.me = data.me;

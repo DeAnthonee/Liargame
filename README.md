@@ -30,26 +30,21 @@ npm start
 ```
 
 Then open http://localhost:3000. To test with phones on the same Wi-Fi, open
-`http://<your-computer-ip>:3000` on each phone.
+`http://<your-computer-ip>:3000` on each phone. Run `npm test` to run the test suite.
 
 ## Deployment notes (for whoever hosts it)
 
-- **Runtime:** Node.js 18 or newer. No database, no build step.
-- **Start command:** `npm install` then `npm start` (runs `node server.js`).
-- **Port:** reads the `PORT` environment variable, defaults to 3000.
-- **WebSockets:** the game uses Socket.IO. The reverse proxy must pass
-  WebSocket upgrades through to the Node process (for nginx: `proxy_http_version 1.1;`,
-  `proxy_set_header Upgrade $http_upgrade;`, `proxy_set_header Connection "upgrade";`).
-  Socket.IO falls back to long-polling if upgrades are blocked, but it is slower.
-- **Single instance:** game state lives in memory, so run exactly one process.
-  If the host wants to scale to multiple instances later, sticky sessions and a
-  Socket.IO Redis adapter are needed. For a party game with a handful of rooms,
-  one small instance is plenty.
-- **HTTPS:** recommended. Phones need a secure origin for the "Share invite"
-  button to use the native share sheet and clipboard.
-- **Health check:** `GET /healthz` returns `ok`.
-- Any platform that runs a Node web service works: a VPS with pm2 or systemd,
-  Render, Railway, Fly.io, Heroku, or a Docker container.
+- **Runtime:** Node.js 18 or newer (tested on 22 and 26). No database, no build step.
+- **Install:** `npm ci` (uses the committed `package-lock.json`). Only `socket.io-client` is a devDependency, and it is needed for `npm test` only.
+- **Test gate:** `npm test` (syntax checks plus `node:test` suites). Tests bind random ports on 127.0.0.1 only.
+- **Start:** `node server.js` from the repo root. Reads `PORT` (default 3000) and `HOST` (default `0.0.0.0`).
+- **Optional env:** `DATA_DIR=/path/outside/the/clone` makes the server snapshot live rooms to `DATA_DIR/rooms.json` on SIGTERM and restore them on the next boot, so a redeploy mid-game is a few-second blip instead of a lost game. Without it, rooms live in memory only and a restart closes them. `BUILD_ID` overrides the build identifier reported by `/healthz` (otherwise the git commit is used).
+- **Health:** `GET /healthz` returns `{"ok":true,"version":"1.1.0","build":"<git sha>","playing":<live matches>,"rooms":<n>,"players":<connected>,"uptime":<s>,"draining":<bool>}`.
+- **Shutdown:** SIGTERM or SIGINT drains cleanly, normally in about a second, worst case 10 seconds.
+- **WebSockets:** Socket.IO on the same port, path `/socket.io/`. The reverse proxy or tunnel must pass WebSocket upgrades through. The client derives `ws`/`wss` from the page URL; nothing is hardcoded.
+- **Caching:** `index.html` is served with `no-store`. CSS and JS are referenced as `/a/<content-hash>/…` and served with `max-age=31536000, immutable`, so every deploy gets fresh URLs. Unhashed paths such as `/js/client.js` are served with `no-cache`.
+- **Single instance:** game state lives in memory. Run exactly one process.
+- **External services:** none. The server serves the Socket.IO client itself; fonts are system fonts.
 
 ## Topic cards
 
