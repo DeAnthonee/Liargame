@@ -83,6 +83,15 @@ const TOPICS = [
       "Wolverine", "Deadpool", "Captain Marvel", "Scarlet Witch",
       "Hawkeye", "Ant-Man", "Star-Lord", "Daredevil"
     ]
+  },
+  {
+    name: "Disney Characters",
+    words: [
+      "Mickey Mouse", "Minnie Mouse", "Donald Duck", "Goofy",
+      "Elsa", "Simba", "Ariel", "Buzz Lightyear",
+      "Woody", "Stitch", "Moana", "Aladdin",
+      "Cinderella", "Mulan", "Winnie the Pooh", "Maleficent"
+    ]
   }
 ];
 if (typeof module !== "undefined" && module.exports) module.exports = TOPICS; else root.TOPICS = TOPICS;

@@ -199,7 +199,7 @@
         <p>Starting with the dealer and moving around the table, each player says one word related to the Secret Word out loud, then taps to pass the turn. Say it without hesitation. If someone steals your word you can repeat it, but it looks very suspicious.</p>
         <p>Choose wisely. Too obvious and the Chameleon works out the Secret Word. Too cryptic and people start to think you are the Chameleon.</p>
         <h3>Unmasking the Chameleon</h3>
-        <p>If someone's phone is closed, the host can skip straight to the discussion. Anyone who closes their phone keeps their seat for 10 minutes and rejoins automatically when they reopen the page.</p>
+        <p>Don't like the category? Before the clues start, the host can tap "Different category" to redeal. If someone's phone is closed, the host can skip straight to the discussion. Anyone who closes their phone keeps their seat for 10 minutes and rejoins automatically when they reopen the page.</p>
         <p>Once everyone has said their word, debate who the Chameleon is. Then everyone votes on their own phone. If two players tie, the dealer gets the deciding vote.</p>
         <ul>
           <li>If the accused is not the Chameleon, the Chameleon escapes.</li>
@@ -354,6 +354,7 @@
         ? `<p class="waiting"><span class="spinner"></span>${seenCount} of ${state.room.players.length} have seen their card</p>
            ${isHost() ? `<button class="btn secondary" data-action="forceClues">Everyone's ready, start the clues</button>` : ""}`
         : `<button class="btn" data-action="seenCard">Got it</button>`}
+      ${isHost() ? `<button class="btn ghost" data-action="skipTopic">Different category</button>` : ""}
       <p class="footer-note">Keep your screen to yourself.</p>`;
   }
 
@@ -602,6 +603,7 @@
       case "forceClues": emit("forceClues"); break;
       case "saidClue": emit("saidClue"); break;
       case "startDiscussion": emit("startDiscussion"); break;
+      case "skipTopic": emit("skipTopic", {}, res => { if (res && res.ok) toast("New category dealt"); }); break;
       case "toggleHideCard": emit("toggleHideCard"); break;
       case "endDebate": emit("endDebate"); break;
       case "vote": emit("vote", { id: el.dataset.id }); break;

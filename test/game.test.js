@@ -91,6 +91,26 @@ test("host can skip straight to the discussion when someone's phone is closed", 
   await Promise.all(sockets.map(s => waitFor(s, st => st.room.phase === "debate")));
 });
 
+test("host can redeal a different category before the clues start", async () => {
+  const { sockets, host } = await makeRoom(ctx.url, ["Sam", "Tia", "Uma"]);
+  open.push(...sockets);
+  await call(host, "start");
+  await Promise.all(sockets.map(s => waitFor(s, st => st.room.phase === "reveal")));
+  const before = host.latest.room.round.topic.id;
+  const chamBefore = sockets.find(s => s.latest.me.role === "chameleon").latest.me.name;
+  host.emit("seenCard");
+  await waitFor(host, st => st.room.round.seen[st.me.id] === true);
+  assert.equal((await call(sockets[1], "skipTopic")).ok, false, "guests cannot change the category");
+  assert.equal((await call(host, "skipTopic")).ok, true);
+  await Promise.all(sockets.map(s => waitFor(s, st => st.room.round.topic.id !== before, "new topic")));
+  assert.equal(host.latest.room.phase, "reveal");
+  assert.equal(Object.keys(host.latest.room.round.seen).length, 0, "everyone re-reads their card");
+  assert.equal(sockets.find(s => s.latest.me.role === "chameleon").latest.me.name, chamBefore, "same chameleon");
+  for (const s of sockets) s.emit("seenCard");
+  await Promise.all(sockets.map(s => waitFor(s, st => st.room.phase === "clues")));
+  assert.equal((await call(host, "skipTopic")).ok, false, "too late once clues have started");
+});
+
 test("three-way tie goes to the dealer, wrong accusation lets the chameleon escape with 2 points", async () => {
   const { sockets, host } = await makeRoom(ctx.url, ["Dee", "Eve", "Fay"]);
   open.push(...sockets);

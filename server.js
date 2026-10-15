@@ -154,6 +154,17 @@ function startRound(room) {
   room.phase = "reveal";
 }
 
+// Host didn't like the category: redeal the same round with a new topic and secret word.
+function redealTopic(room) {
+  const r = room.round;
+  const topic = drawTopic(room);
+  r.topic = { id: topic.id, name: topic.name, words: topic.words };
+  r.secretIdx = rand(16);
+  r.dice = { yellow: 1 + rand(6), blue: 1 + rand(8) };
+  r.seen = {};
+  r.skips = (r.skips || 0) + 1;
+}
+
 function maybeStartClues(room) {
   const r = room.round;
   if (room.players.every(p => r.seen[p.id] || !p.connected) && room.players.some(p => r.seen[p.id])) room.phase = "clues";
@@ -592,6 +603,17 @@ function createServer(options) {
       c.room.round.seen[c.p.id] = true;
       maybeStartClues(c.room);
       done(c);
+    });
+
+    socket.on("skipTopic", (data, cb) => {
+      const c = current();
+      if (!c || !c.isHost) return fail(cb, "Only the host can change the category.");
+      if (c.room.phase !== "reveal") return fail(cb, "You can only change the category before the clues start.");
+      if (enabledTopics(c.room).length < 2) return fail(cb, "Turn on more topic cards in the lobby first.");
+      const before = c.room.round.topic.id;
+      redealTopic(c.room);
+      if (c.room.round.topic.id === before) redealTopic(c.room);
+      done(c, cb);
     });
 
     socket.on("forceClues", () => {
