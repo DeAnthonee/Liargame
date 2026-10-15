@@ -1,7 +1,8 @@
 // Topic cards. Each card is a 4x4 grid of 16 words.
 // Grid positions are read column-letter then row-number (A1 .. D4),
 // row by row: words[0..3] = A1 B1 C1 D1, words[4..7] = A2 B2 C2 D2, etc.
-window.TOPICS = [
+(function (root) {
+const TOPICS = [
   {
     name: "Food",
     words: [
@@ -48,3 +49,5 @@ window.TOPICS = [
     ]
   }
 ];
+if (typeof module !== "undefined" && module.exports) module.exports = TOPICS; else root.TOPICS = TOPICS;
+})(typeof window !== "undefined" ? window : globalThis);
