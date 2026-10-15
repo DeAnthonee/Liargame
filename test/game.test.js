@@ -13,7 +13,8 @@ async function playClues(sockets) {
     await Promise.all(sockets.map(s => waitFor(s, st => st.room.phase === "debate" || (st.room.phase === "clues" && st.room.round.clues.length === i), "clue turn " + i)));
     const turn = sockets.find(s => s.latest.room.round.currentClueId === s.latest.me.id);
     assert.ok(turn, "someone has the clue turn");
-    const res = await call(turn, "submitClue", { word: "clue" + i });
+    assert.equal((await call(sockets.find(s => s !== turn), "saidClue")).ok, false, "only the current player can pass the turn");
+    const res = await call(turn, "saidClue");
     assert.equal(res.ok, true);
   }
   await Promise.all(sockets.map(s => waitFor(s, st => st.room.phase === "debate", "debate")));
@@ -74,6 +75,20 @@ test("full round: lobby -> reveal -> clues -> debate -> vote -> guess -> result,
   host.emit("nextRound");
   await Promise.all(sockets.map(s => waitFor(s, st => st.room.phase === "reveal" && st.room.roundNumber === 2, "round 2")));
   assert.equal(host.latest.room.dealerId, cham.latest.me.id, "the chameleon deals next");
+});
+
+test("host can skip straight to the discussion when someone's phone is closed", async () => {
+  const { sockets, host } = await makeRoom(ctx.url, ["Pat", "Quin", "Rae"]);
+  open.push(...sockets);
+  host.emit("updateSettings", { debateSeconds: 0 });
+  await waitFor(host, st => st.room.settings.debateSeconds === 0);
+  await call(host, "start");
+  await Promise.all(sockets.map(s => waitFor(s, st => st.room.phase === "reveal")));
+  for (const s of sockets) s.emit("seenCard");
+  await Promise.all(sockets.map(s => waitFor(s, st => st.room.phase === "clues")));
+  assert.equal((await call(sockets[1], "startDiscussion")).ok, false, "guests cannot skip ahead");
+  assert.equal((await call(host, "startDiscussion")).ok, true);
+  await Promise.all(sockets.map(s => waitFor(s, st => st.room.phase === "debate")));
 });
 
 test("three-way tie goes to the dealer, wrong accusation lets the chameleon escape with 2 points", async () => {

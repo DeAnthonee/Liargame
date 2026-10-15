@@ -26,7 +26,6 @@
     serverOffset: 0,
     timerHandle: null,
     editingTopic: null,
-    clueDraft: "",
     homeError: ""
   };
 
@@ -197,9 +196,10 @@
         <p>One player creates a room and shares the 4-letter code. Everyone else joins from their own phone. The host starts the game once 3 to 8 players are in.</p>
         <h3>The hunt begins</h3>
         <p>Each round, every phone shows the Topic Card. Everyone except the Chameleon also sees the Secret Word highlighted. The Chameleon only sees the card.</p>
-        <p>Starting with the dealer and moving around the table, each player says one word related to the Secret Word and types it on their phone so everyone can see it. Say it without hesitation. If someone steals your word you can repeat it, but it looks very suspicious.</p>
+        <p>Starting with the dealer and moving around the table, each player says one word related to the Secret Word out loud, then taps to pass the turn. Say it without hesitation. If someone steals your word you can repeat it, but it looks very suspicious.</p>
         <p>Choose wisely. Too obvious and the Chameleon works out the Secret Word. Too cryptic and people start to think you are the Chameleon.</p>
         <h3>Unmasking the Chameleon</h3>
+        <p>If someone's phone is closed, the host can skip straight to the discussion. Anyone who closes their phone keeps their seat for 10 minutes and rejoins automatically when they reopen the page.</p>
         <p>Once everyone has said their word, debate who the Chameleon is. Then everyone votes on their own phone. If two players tie, the dealer gets the deciding vote.</p>
         <ul>
           <li>If the accused is not the Chameleon, the Chameleon escapes.</li>
@@ -360,11 +360,12 @@
   function clueList() {
     const r = state.room.round;
     return `<div class="clue-list">${r.clueOrder.map((id, i) => {
-      const c = r.clues.find(x => x.id === id);
+      const said = r.clues.some(x => x.id === id);
       const active = state.room.phase === "clues" && r.currentClueId === id;
-      return `<div class="clue ${c ? "" : "pending"} ${active ? "active" : ""}">
-        <span class="name">${i + 1}. ${esc(nameOf(id))}${id === r.dealerId ? " (dealer)" : ""}</span>
-        <span class="word">${c ? (c.skipped ? "skipped" : esc(c.word)) : (active ? "thinking…" : "")}</span>
+      const p = pl(id);
+      return `<div class="clue ${said ? "" : "pending"} ${active ? "active" : ""}">
+        <span class="name">${i + 1}. ${esc(nameOf(id))}${id === r.dealerId ? " (dealer)" : ""}${p && !p.connected ? " · away" : ""}</span>
+        <span class="word">${said ? "✓" : (active ? "speaking…" : "")}</span>
       </div>`;
     }).join("")}</div>`;
   }
@@ -377,18 +378,14 @@
       ${roundBar()}
       <div class="card flat">
         <h2>Say your words</h2>
-        <p class="muted small">Going around from the dealer, each player says <strong>one word</strong> related to the Secret Word and types it in.</p>
+        <p class="muted small">Going around from the dealer, each player says <strong>one word</strong> related to the Secret Word out loud, then taps to pass the turn.</p>
         ${clueList()}
       </div>
       ${myTurn
-        ? `<div class="card">
-             <h3 style="color:var(--yellow)">Your turn</h3>
-             <input id="clue" class="input" value="${esc(state.clueDraft)}" placeholder="One word" maxlength="24" autocomplete="off" enterkeyhint="send" autofocus>
-             <button class="btn" data-action="submitClue">Say it</button>
-           </div>`
-        : `<p class="waiting"><span class="spinner"></span>Waiting for ${esc(cur ? cur.name : "…")}${cur && !cur.connected ? " (offline)" : ""}</p>
-           ${isHost() ? `<button class="btn ghost" data-action="skipClue">Skip ${esc(cur ? cur.name : "")}</button>` : ""}`}
-      ${myGrid()}`;
+        ? `<button class="btn yellow" data-action="saidClue">Your turn: say your word, then tap here</button>`
+        : `<p class="waiting"><span class="spinner"></span>Waiting for ${esc(cur ? cur.name : "…")}${cur && !cur.connected ? " (away)" : ""}</p>`}
+      ${myGrid()}
+      ${isHost() ? `<button class="btn ghost" data-action="startDiscussion">Skip ahead: start the discussion</button>` : ""}`;
   }
 
   function timerHtml() {
@@ -416,7 +413,7 @@
         <h2>Debate</h2>
         <p class="muted small">Channel your inner attorney. Pick holes in each other's words. Who hesitated? Whose clue was a little too vague?</p>
         ${timerHtml()}
-        ${clueList()}
+        <div class="order">${state.room.round.clueOrder.map((id, i) => `<div class="item ${i === 0 ? "dealer" : ""}"><span class="n">${i + 1}</span>${esc(nameOf(id))}</div>`).join("")}</div>
       </div>
       ${myGrid()}
       ${isHost() ? `<button class="btn" data-action="endDebate">Time to vote</button>
@@ -438,7 +435,6 @@
       <div class="card flat">
         <h2>Who is the Chameleon?</h2>
         <p class="muted small">${voted ? "You can change your vote until everyone has voted." : "Tap your suspect. Votes are secret."}</p>
-        ${clueList()}
       </div>
       <div class="vote-list">${list}</div>
       <p class="waiting"><span class="spinner"></span>${votedCount} of ${total} voted</p>
@@ -604,13 +600,8 @@
       case "start": emit("start"); break;
       case "seenCard": emit("seenCard"); break;
       case "forceClues": emit("forceClues"); break;
-      case "submitClue": {
-        const word = document.getElementById("clue").value.trim();
-        if (!word) { toast("Type your word first."); return; }
-        state.clueDraft = "";
-        emit("submitClue", { word }); break;
-      }
-      case "skipClue": emit("skipClue"); break;
+      case "saidClue": emit("saidClue"); break;
+      case "startDiscussion": emit("startDiscussion"); break;
       case "toggleHideCard": emit("toggleHideCard"); break;
       case "endDebate": emit("endDebate"); break;
       case "vote": emit("vote", { id: el.dataset.id }); break;
@@ -626,13 +617,9 @@
   app.addEventListener("keydown", e => {
     if (e.key !== "Enter") return;
     const t = e.target;
-    if (t.id === "clue") { e.preventDefault(); app.querySelector('[data-action="submitClue"]').click(); }
-    else if (t.id === "code") { e.preventDefault(); app.querySelector('[data-action="join"]').click(); }
+    if (t.id === "code") { e.preventDefault(); app.querySelector('[data-action="join"]').click(); }
     else if (t.id === "name") { t.blur(); }
     else if (t.matches(".cell.pick")) t.click();
-  });
-  app.addEventListener("input", e => {
-    if (e.target.id === "clue") state.clueDraft = e.target.value;
   });
 
   // Prefill a code from an invite link.

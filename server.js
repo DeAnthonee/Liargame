@@ -16,8 +16,8 @@ const MAX_PLAYERS = 8;
 const WIN_SCORE = 5;
 const COLS = ["A", "B", "C", "D"];
 const ROOM_IDLE_MS = 2 * 60 * 60 * 1000;   // drop rooms untouched for 2h
-const EMPTY_ROOM_MS = 10 * 60 * 1000;      // drop rooms with nobody connected for 10m
-const LOBBY_LEAVE_GRACE_MS = 60 * 1000;    // lobby players who vanish are removed after 60s
+const REJOIN_GRACE_MS = 10 * 60 * 1000;    // a player who closes their phone keeps their seat for 10 minutes
+const EMPTY_ROOM_MS = 15 * 60 * 1000;      // drop rooms with nobody connected for 15m (longer than the rejoin window)
 const ACTIVE_PHASES = ["reveal", "clues", "debate", "vote", "tiebreak", "guess", "result"];
 const PUBLIC_DIR = path.join(__dirname, "public");
 
@@ -601,25 +601,23 @@ function createServer(options) {
       done(c);
     });
 
-    socket.on("submitClue", (data, cb) => {
+    // The player whose turn it is says their word out loud, then taps once to pass the turn.
+    socket.on("saidClue", (data, cb) => {
       const c = current();
       if (!c || c.room.phase !== "clues") return fail(cb, "Not the clue phase.");
       if (currentClueId(c.room) !== c.p.id) return fail(cb, "It's not your turn.");
-      const word = cleanName(data && data.word).slice(0, 24);
-      if (!word) return fail(cb, "Say a word.");
-      c.room.round.clues.push({ id: c.p.id, word });
+      c.room.round.clues.push({ id: c.p.id });
       advanceClue(c.room, startDebate);
       done(c, cb);
     });
 
-    socket.on("skipClue", () => {
+    // Host escape hatch: skip whoever is stuck (phone closed) and move straight to the discussion.
+    socket.on("startDiscussion", (data, cb) => {
       const c = current();
-      if (!c || !c.isHost || c.room.phase !== "clues") return;
-      const id = currentClueId(c.room);
-      if (!id) return;
-      c.room.round.clues.push({ id, word: "", skipped: true });
-      advanceClue(c.room, startDebate);
-      done(c);
+      if (!c || !c.isHost) return fail(cb, "Only the host can do that.");
+      if (c.room.phase !== "reveal" && c.room.phase !== "clues") return fail(cb, "Not now.");
+      startDebate(c.room);
+      done(c, cb);
     });
 
     socket.on("toggleHideCard", () => {
@@ -723,7 +721,7 @@ function createServer(options) {
             removePlayer(room, p.id);
             if (rooms.has(room.code)) broadcast(room);
           }
-        }, LOBBY_LEAVE_GRACE_MS);
+        }, REJOIN_GRACE_MS);
         room.leaveTimers.set(p.id, t);
       } else {
         if (room.phase === "reveal") maybeStartClues(room);
